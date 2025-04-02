@@ -67,13 +67,18 @@ function initGTM() {
       // Śledzenie kliknięć w przyciski "Zapisz się"
       document.querySelectorAll('a[id^="btn-"]').forEach(function(button) {
         button.addEventListener('click', function(e) {
-          posthog.capture('signup_button_click', {
+          e.preventDefault(); // Zapobiegamy domyślnej akcji
+          const eventProperties = {
             $event_type: 'click',
             button_id: this.id,
             class_name: document.getElementById('nazwa-zapisy').innerText,
             button_text: this.innerText,
             timestamp: new Date().toISOString(),
             $current_url: window.location.href
+          };
+          
+          posthog.capture('signup_button_click', eventProperties, {
+            send_instantly: true
           });
         });
       });
@@ -81,20 +86,24 @@ function initGTM() {
       // Śledzenie kliknięć w numery telefonu
       document.querySelectorAll('a[href^="tel:"]').forEach(function(phoneButton) {
         phoneButton.addEventListener('click', function(e) {
-          posthog.capture('phone_number_click', {
+          const eventProperties = {
             $event_type: 'click',
             phone_number: this.href.replace('tel:', ''),
             button_location: this.closest('.div-block-34') ? 'form_section' : 
                            this.closest('.div-block-95') ? 'faq_section' : 'unknown',
             timestamp: new Date().toISOString(),
             $current_url: window.location.href
+          };
+          
+          posthog.capture('phone_number_click', eventProperties, {
+            send_instantly: true
           });
         });
       });
 
       // Śledzenie wysłania formularza
       document.getElementById('my-form').addEventListener('submit', function(e) {
-        posthog.capture('form_submitted', {
+        const eventProperties = {
           $event_type: 'form_submit',
           form_id: this.id,
           class_name: document.getElementById('nazwa-zapisy').innerText,
@@ -102,6 +111,10 @@ function initGTM() {
           has_phone: !!document.getElementById('telefon').value,
           timestamp: new Date().toISOString(),
           $current_url: window.location.href
+        };
+        
+        posthog.capture('form_submitted', eventProperties, {
+          send_instantly: true
         });
       });
 
@@ -110,6 +123,8 @@ function initGTM() {
         posthog.capture('$pageleave', {
           $current_url: window.location.href,
           timestamp: new Date().toISOString()
+        }, {
+          send_instantly: true
         });
       });
 
@@ -120,6 +135,8 @@ function initGTM() {
             $current_url: window.location.href,
             visibility_state: 'hidden',
             timestamp: new Date().toISOString()
+          }, {
+            send_instantly: true
           });
         }
       });
