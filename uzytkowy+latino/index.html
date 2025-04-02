@@ -43,67 +43,48 @@ function initGTM() {
 
 <!-- PostHog -->
 <script>
-  !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src="https://app.posthog.com/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+  !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug getPageViewId captureTraceFeedback captureTraceMetric".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
 
-  posthog.init('phx_kjEi0YzsvNiBbP31UU3JC0ey6AIDcXRSfgbf3kQNsNYTiEk', {
-    api_host: 'https://app.posthog.com',
-    autocapture: true,
-    capture_pageview: true,
-    capture_pageleave: true,
-    persistence: 'localStorage',
-    cross_subdomain_cookie: false,
-    secure_cookie: true,
+  posthog.init('phc_phfNHPmhMynoV48edkmPC0FqxbDaWu5eglPBngwBFAk', {
+    api_host: 'https://us.i.posthog.com',
+    person_profiles: 'identified_only',
     loaded: function(posthog) {
-      // Ręczne wywołanie pageview
-      posthog.capture('$pageview', {
-        $current_url: window.location.href,
-        $referrer: document.referrer
-      });
-    },
-    bootstrap: {
-      distinctID: 'anonymous_id_' + Math.random().toString(36).substring(2),
-      isIdentified: false
-    }
-  });
+      // Śledzenie wyświetlenia strony
+      posthog.capture('$pageview');
 
-  // Nasłuchiwanie na opuszczenie strony
-  window.addEventListener('beforeunload', function() {
-    posthog.capture('$pageleave', {
-      $current_url: window.location.href
-    });
-  });
-
-  // Nasłuchiwanie na zmiany widoczności strony
-  document.addEventListener('visibilitychange', function() {
-    if (document.visibilityState === 'hidden') {
-      posthog.capture('$pageleave', {
-        $current_url: window.location.href
-      });
-    }
-  });
-
-  // Dodatkowe śledzenie zdarzeń
-  document.addEventListener('DOMContentLoaded', function() {
-    // Śledzenie kliknięć w przyciski "Zapisz się"
-    document.querySelectorAll('a[id^="btn-"]').forEach(function(button) {
-      button.addEventListener('click', function() {
-        posthog.capture('signup_button_click', {
-          button_id: this.id,
-          class_name: document.getElementById('nazwa-zapisy').innerText
+      // Śledzenie kliknięć w przyciski "Zapisz się"
+      document.querySelectorAll('a[id^="btn-"]').forEach(function(button) {
+        button.addEventListener('click', function() {
+          posthog.capture('signup_button_click', {
+            button_id: this.id,
+            class_name: document.getElementById('nazwa-zapisy').innerText
+          });
         });
       });
-    });
 
-    // Śledzenie kliknięć w numery telefonu
-    document.querySelectorAll('a[href^="tel:"]').forEach(function(phoneButton) {
-      phoneButton.addEventListener('click', function() {
-        posthog.capture('phone_number_click', {
-          phone_number: this.href.replace('tel:', ''),
-          button_location: this.closest('.div-block-34') ? 'form_section' : 
-                         this.closest('.div-block-95') ? 'faq_section' : 'unknown'
+      // Śledzenie kliknięć w numery telefonu
+      document.querySelectorAll('a[href^="tel:"]').forEach(function(phoneButton) {
+        phoneButton.addEventListener('click', function() {
+          posthog.capture('phone_number_click', {
+            phone_number: this.href.replace('tel:', ''),
+            button_location: this.closest('.div-block-34') ? 'form_section' : 
+                           this.closest('.div-block-95') ? 'faq_section' : 'unknown'
+          });
         });
       });
-    });
+
+      // Śledzenie opuszczenia strony
+      window.addEventListener('beforeunload', function() {
+        posthog.capture('$pageleave');
+      });
+
+      // Śledzenie zmiany widoczności strony
+      document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'hidden') {
+          posthog.capture('$pageleave');
+        }
+      });
+    }
   });
 </script>
 </head>
