@@ -46,31 +46,119 @@ function initGTM() {
   !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug getPageViewId captureTraceFeedback captureTraceMetric".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
   posthog.init('phx_kjEi0YzsvNiBbP31UU3JC0ey6AIDcXRSfgbf3kQNsNYTiEk', {
     api_host: 'https://us.i.posthog.com',
-    person_profiles: 'always',
+    autocapture: true,
     capture_pageview: true,
     capture_pageleave: true,
+    loaded: function(posthog) {
+      // Ręczne wywołanie pageview
+      posthog.capture('$pageview', {
+        $current_url: window.location.href,
+        $referrer: document.referrer
+      });
+    },
+    bootstrap: {
+      distinctID: 'anonymous_id',
+      isIdentified: false
+    },
     persistence: 'localStorage',
+    disable_session_recording: false,
+    enable_recording_console_log: true,
     session_recording: {
       maskAllInputs: true,
-      maskAllText: false,
-      blockClass: 'ph-no-capture',
-      blockSelector: '[data-ph-capture="false"]'
-    }
+      maskAllText: false
+    },
+    mask_all_text: false,
+    mask_all_element_attributes: false,
+    _capture_metrics: true,
+    _capture_performance: true
   });
 
-  // Ręczne wywołanie pageview
-  posthog.capture('$pageview');
-  
   // Nasłuchiwanie na opuszczenie strony
   window.addEventListener('beforeunload', function() {
-    posthog.capture('$pageleave');
+    posthog.capture('$pageleave', {
+      $current_url: window.location.href
+    });
   });
 
   // Nasłuchiwanie na zmiany widoczności strony
   document.addEventListener('visibilitychange', function() {
     if (document.visibilityState === 'hidden') {
-      posthog.capture('$pageleave');
+      posthog.capture('$pageleave', {
+        $current_url: window.location.href
+      });
     }
+  });
+
+  // Dodatkowe śledzenie zdarzeń
+  document.addEventListener('DOMContentLoaded', function() {
+    // Śledzenie kliknięć w przyciski "Zapisz się"
+    document.querySelectorAll('a[id^="btn-"]').forEach(function(button) {
+      button.addEventListener('click', function() {
+        posthog.capture('signup_button_click', {
+          button_id: this.id,
+          class_name: document.getElementById('nazwa-zapisy').innerText,
+          button_text: this.innerText,
+          button_location: this.closest('.div-block-12') ? this.closest('.div-block-12').querySelector('.text-block-64').innerText : 'unknown',
+          day_of_week: this.closest('.div-block-12') ? this.closest('.div-block-12').querySelector('.text-block-63').innerText : 'unknown',
+          time: this.closest('.div-block-12') ? this.closest('.div-block-12').querySelector('.text-block-66').innerText : 'unknown'
+        });
+      });
+    });
+
+    // Śledzenie kliknięć w przyciski z numerem telefonu
+    document.querySelectorAll('a[href^="tel:"]').forEach(function(phoneButton) {
+      phoneButton.addEventListener('click', function() {
+        posthog.capture('phone_number_click', {
+          phone_number: this.href.replace('tel:', ''),
+          button_text: this.innerText,
+          button_location: this.closest('.div-block-34') ? 'form_section' : 
+                         this.closest('.div-block-95') ? 'faq_section' : 'unknown'
+        });
+      });
+    });
+
+    // Śledzenie kliknięć w przyciski w sekcji oferty
+    document.querySelectorAll('.rtrt').forEach(function(button) {
+      button.addEventListener('click', function() {
+        posthog.capture('offer_button_click', {
+          button_text: this.innerText,
+          button_class: this.className
+        });
+      });
+    });
+
+    // Śledzenie kliknięć w przyciski FAQ
+    document.querySelectorAll('.faq_question').forEach(function(question) {
+      question.addEventListener('click', function() {
+        const questionText = this.querySelector('.text-weight-semibold').innerText;
+        posthog.capture('faq_question_click', {
+          question_text: questionText
+        });
+      });
+    });
+
+    // Śledzenie kliknięć w przyciski w sliderze opinii
+    document.querySelectorAll('.w-slider-arrow-left, .w-slider-arrow-right').forEach(function(arrow) {
+      arrow.addEventListener('click', function() {
+        posthog.capture('testimonial_slider_navigation', {
+          direction: this.classList.contains('w-slider-arrow-left') ? 'left' : 'right'
+        });
+      });
+    });
+
+    // Śledzenie wysłania formularza
+    document.getElementById('my-form').addEventListener('submit', function() {
+      posthog.capture('form_submitted', {
+        form_id: this.id,
+        class_name: document.getElementById('nazwa-zapisy').innerText,
+        form_data: {
+          has_name: !!document.getElementById('imie').value,
+          has_surname: !!document.getElementById('nazwisko').value,
+          has_phone: !!document.getElementById('telefon').value,
+          has_message: !!document.getElementById('message').value
+        }
+      });
+    });
   });
 </script>
 </head>
