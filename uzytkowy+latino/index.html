@@ -43,132 +43,102 @@ function initGTM() {
 
 <!-- PostHog -->
 <script>
-  !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug getPageViewId captureTraceFeedback captureTraceMetric".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+  !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.async=!0,p.src=s.api_host+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys onSessionId".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
 
+  // Inicjalizacja PostHog z debugowaniem
   posthog.init('phc_phfNHPmhMynoV48edkmPC0FqxbDaWu5eglPBngwBFAk', {
     api_host: 'https://us.i.posthog.com',
-    autocapture: true,
+    autocapture: false,
     capture_pageview: true,
     capture_pageleave: true,
-    bootstrap: {
-      distinctID: 'user_' + Date.now(),
-      isIdentified: false
-    },
+    persistence: 'memory',
+    debug: true,
     loaded: function(posthog) {
-      // Włączamy debugowanie PostHog
-      posthog.debug(true);
-      console.log('PostHog załadowany:', posthog);
+      console.log('PostHog załadowany i gotowy do użycia');
 
-      // Funkcja do śledzenia kliknięć w telefon
-      function trackPhoneClicks() {
-        if (!window.posthog) {
-          console.warn("PostHog nie jest jeszcze załadowany.");
-          return;
-        }
-
-        document.querySelectorAll('a[href^="tel:"]').forEach(function(phoneButton) {
-          console.log('Znaleziono przycisk telefonu:', phoneButton);
-          
-          phoneButton.addEventListener('click', function(e) {
-            console.log('Kliknięto w telefon:', this.href);
-            
-            const eventProperties = {
-              $event_type: 'click',
-              phone_number: this.href.replace('tel:', ''),
-              button_location: this.closest('.div-block-34') ? 'form_section' : 
-                             this.closest('.div-block-95') ? 'faq_section' : 'unknown',
-              timestamp: new Date().toISOString(),
-              $current_url: window.location.href
-            };
-            
-            console.log('Wysyłam event do PostHog:', eventProperties);
-            
-            posthog.capture('phone_number_click', eventProperties, {
-              send_instantly: true
-            });
+      // Funkcja pomocnicza do wysyłania zdarzeń
+      function sendEvent(eventName, properties) {
+        try {
+          posthog.capture(eventName, {
+            ...properties,
+            distinct_id: posthog.get_distinct_id(),
+            timestamp: new Date().toISOString()
           });
-        });
-      }
-
-      // Uruchamiamy śledzenie po załadowaniu DOM
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', trackPhoneClicks);
-      } else {
-        trackPhoneClicks();
+          console.log(`Wysłano zdarzenie ${eventName}:`, properties);
+        } catch (error) {
+          console.error(`Błąd podczas wysyłania zdarzenia ${eventName}:`, error);
+        }
       }
 
       // Śledzenie wyświetlenia strony
-      posthog.capture('$pageview', {
+      sendEvent('$pageview', {
         $current_url: window.location.href,
         $referrer: document.referrer,
         $browser: navigator.userAgent,
-        $device_type: /Mobile|iP(hone|od|ad)|Android|BlackBerry|IEMobile/.test(navigator.userAgent) ? 'Mobile' : 'Desktop',
-        timestamp: new Date().toISOString()
+        $device_type: /Mobile|iP(hone|od|ad)|Android|BlackBerry|IEMobile/.test(navigator.userAgent) ? 'Mobile' : 'Desktop'
+      });
+
+      // Śledzenie kliknięć w numery telefonu
+      document.addEventListener('click', function(e) {
+        const phoneLink = e.target.closest('a[href^="tel:"]');
+        if (phoneLink) {
+          const phoneNumber = phoneLink.href.replace('tel:', '');
+          const location = phoneLink.closest('.div-block-34') ? 'form_section' : 
+                          phoneLink.closest('.div-block-95') ? 'faq_section' : 'unknown';
+          
+          sendEvent('phone_click', {
+            phone_number: phoneNumber,
+            location: location,
+            element_type: 'phone_link',
+            $event_type: 'click'
+          });
+        }
       });
 
       // Śledzenie kliknięć w przyciski "Zapisz się"
-      document.querySelectorAll('a[id^="btn-"]').forEach(function(button) {
-        button.addEventListener('click', function(e) {
+      document.addEventListener('click', function(e) {
+        const signupButton = e.target.closest('a[id^="btn-"]');
+        if (signupButton) {
           e.preventDefault();
-          console.log('Kliknięto w przycisk zapisu:', this.id);
           
-          const eventProperties = {
-            $event_type: 'click',
-            button_id: this.id,
-            class_name: document.getElementById('nazwa-zapisy').innerText,
-            button_text: this.innerText,
-            timestamp: new Date().toISOString(),
-            $current_url: window.location.href
-          };
-          
-          console.log('Wysyłam event przycisku do PostHog:', eventProperties);
-          
-          posthog.capture('signup_button_click', eventProperties, {
-            send_instantly: true
+          sendEvent('signup_click', {
+            button_id: signupButton.id,
+            button_text: signupButton.innerText,
+            class_name: document.getElementById('nazwa-zapisy')?.innerText,
+            element_type: 'button',
+            $event_type: 'click'
           });
-        });
+        }
       });
 
       // Śledzenie wysłania formularza
-      document.getElementById('my-form').addEventListener('submit', function(e) {
-        console.log('Wysłano formularz');
-        
-        const eventProperties = {
-          $event_type: 'form_submit',
-          form_id: this.id,
-          class_name: document.getElementById('nazwa-zapisy').innerText,
-          has_name: !!document.getElementById('imie').value,
-          has_phone: !!document.getElementById('telefon').value,
-          timestamp: new Date().toISOString(),
-          $current_url: window.location.href
-        };
-        
-        console.log('Wysyłam event formularza do PostHog:', eventProperties);
-        
-        posthog.capture('form_submitted', eventProperties, {
-          send_instantly: true
+      const form = document.getElementById('my-form');
+      if (form) {
+        form.addEventListener('submit', function(e) {
+          sendEvent('form_submit', {
+            form_id: this.id,
+            class_name: document.getElementById('nazwa-zapisy')?.innerText,
+            has_name: !!document.getElementById('imie')?.value,
+            has_phone: !!document.getElementById('telefon')?.value,
+            element_type: 'form',
+            $event_type: 'form_submit'
+          });
         });
-      });
+      }
 
       // Śledzenie opuszczenia strony
       window.addEventListener('beforeunload', function() {
-        posthog.capture('$pageleave', {
-          $current_url: window.location.href,
-          timestamp: new Date().toISOString()
-        }, {
-          send_instantly: true
+        sendEvent('$pageleave', {
+          $current_url: window.location.href
         });
       });
 
       // Śledzenie zmiany widoczności strony
       document.addEventListener('visibilitychange', function() {
         if (document.visibilityState === 'hidden') {
-          posthog.capture('$pageleave', {
+          sendEvent('$pageleave', {
             $current_url: window.location.href,
-            visibility_state: 'hidden',
-            timestamp: new Date().toISOString()
-          }, {
-            send_instantly: true
+            visibility_state: 'hidden'
           });
         }
       });
