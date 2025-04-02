@@ -47,26 +47,33 @@ function initGTM() {
 
   posthog.init('phc_phfNHPmhMynoV48edkmPC0FqxbDaWu5eglPBngwBFAk', {
     api_host: 'https://us.i.posthog.com',
-    person_profiles: 'always',
     autocapture: true,
     capture_pageview: true,
     capture_pageleave: true,
+    bootstrap: {
+      distinctID: 'user_' + Date.now(),
+      isIdentified: false
+    },
     loaded: function(posthog) {
       // Śledzenie wyświetlenia strony
       posthog.capture('$pageview', {
         $current_url: window.location.href,
-        $referrer: document.referrer
+        $referrer: document.referrer,
+        $browser: navigator.userAgent,
+        $device_type: /Mobile|iP(hone|od|ad)|Android|BlackBerry|IEMobile/.test(navigator.userAgent) ? 'Mobile' : 'Desktop',
+        timestamp: new Date().toISOString()
       });
 
       // Śledzenie kliknięć w przyciski "Zapisz się"
       document.querySelectorAll('a[id^="btn-"]').forEach(function(button) {
         button.addEventListener('click', function(e) {
           posthog.capture('signup_button_click', {
+            $event_type: 'click',
             button_id: this.id,
             class_name: document.getElementById('nazwa-zapisy').innerText,
-            event_type: 'click',
-            element_type: 'button',
-            timestamp: new Date().toISOString()
+            button_text: this.innerText,
+            timestamp: new Date().toISOString(),
+            $current_url: window.location.href
           });
         });
       });
@@ -75,12 +82,12 @@ function initGTM() {
       document.querySelectorAll('a[href^="tel:"]').forEach(function(phoneButton) {
         phoneButton.addEventListener('click', function(e) {
           posthog.capture('phone_number_click', {
+            $event_type: 'click',
             phone_number: this.href.replace('tel:', ''),
             button_location: this.closest('.div-block-34') ? 'form_section' : 
                            this.closest('.div-block-95') ? 'faq_section' : 'unknown',
-            event_type: 'click',
-            element_type: 'phone_link',
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            $current_url: window.location.href
           });
         });
       });
@@ -88,11 +95,13 @@ function initGTM() {
       // Śledzenie wysłania formularza
       document.getElementById('my-form').addEventListener('submit', function(e) {
         posthog.capture('form_submitted', {
+          $event_type: 'form_submit',
           form_id: this.id,
           class_name: document.getElementById('nazwa-zapisy').innerText,
-          event_type: 'submit',
-          element_type: 'form',
-          timestamp: new Date().toISOString()
+          has_name: !!document.getElementById('imie').value,
+          has_phone: !!document.getElementById('telefon').value,
+          timestamp: new Date().toISOString(),
+          $current_url: window.location.href
         });
       });
 
@@ -113,12 +122,6 @@ function initGTM() {
             timestamp: new Date().toISOString()
           });
         }
-      });
-
-      // Identyfikacja użytkownika
-      posthog.identify(null, {
-        initial_referrer: document.referrer,
-        initial_url: window.location.href
       });
     }
   });
