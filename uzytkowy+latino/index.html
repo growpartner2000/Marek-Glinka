@@ -55,6 +55,48 @@ function initGTM() {
       isIdentified: false
     },
     loaded: function(posthog) {
+      // Włączamy debugowanie PostHog
+      posthog.debug(true);
+      console.log('PostHog załadowany:', posthog);
+
+      // Funkcja do śledzenia kliknięć w telefon
+      function trackPhoneClicks() {
+        if (!window.posthog) {
+          console.warn("PostHog nie jest jeszcze załadowany.");
+          return;
+        }
+
+        document.querySelectorAll('a[href^="tel:"]').forEach(function(phoneButton) {
+          console.log('Znaleziono przycisk telefonu:', phoneButton);
+          
+          phoneButton.addEventListener('click', function(e) {
+            console.log('Kliknięto w telefon:', this.href);
+            
+            const eventProperties = {
+              $event_type: 'click',
+              phone_number: this.href.replace('tel:', ''),
+              button_location: this.closest('.div-block-34') ? 'form_section' : 
+                             this.closest('.div-block-95') ? 'faq_section' : 'unknown',
+              timestamp: new Date().toISOString(),
+              $current_url: window.location.href
+            };
+            
+            console.log('Wysyłam event do PostHog:', eventProperties);
+            
+            posthog.capture('phone_number_click', eventProperties, {
+              send_instantly: true
+            });
+          });
+        });
+      }
+
+      // Uruchamiamy śledzenie po załadowaniu DOM
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', trackPhoneClicks);
+      } else {
+        trackPhoneClicks();
+      }
+
       // Śledzenie wyświetlenia strony
       posthog.capture('$pageview', {
         $current_url: window.location.href,
@@ -67,7 +109,9 @@ function initGTM() {
       // Śledzenie kliknięć w przyciski "Zapisz się"
       document.querySelectorAll('a[id^="btn-"]').forEach(function(button) {
         button.addEventListener('click', function(e) {
-          e.preventDefault(); // Zapobiegamy domyślnej akcji
+          e.preventDefault();
+          console.log('Kliknięto w przycisk zapisu:', this.id);
+          
           const eventProperties = {
             $event_type: 'click',
             button_id: this.id,
@@ -77,25 +121,9 @@ function initGTM() {
             $current_url: window.location.href
           };
           
-          posthog.capture('signup_button_click', eventProperties, {
-            send_instantly: true
-          });
-        });
-      });
-
-      // Śledzenie kliknięć w numery telefonu
-      document.querySelectorAll('a[href^="tel:"]').forEach(function(phoneButton) {
-        phoneButton.addEventListener('click', function(e) {
-          const eventProperties = {
-            $event_type: 'click',
-            phone_number: this.href.replace('tel:', ''),
-            button_location: this.closest('.div-block-34') ? 'form_section' : 
-                           this.closest('.div-block-95') ? 'faq_section' : 'unknown',
-            timestamp: new Date().toISOString(),
-            $current_url: window.location.href
-          };
+          console.log('Wysyłam event przycisku do PostHog:', eventProperties);
           
-          posthog.capture('phone_number_click', eventProperties, {
+          posthog.capture('signup_button_click', eventProperties, {
             send_instantly: true
           });
         });
@@ -103,6 +131,8 @@ function initGTM() {
 
       // Śledzenie wysłania formularza
       document.getElementById('my-form').addEventListener('submit', function(e) {
+        console.log('Wysłano formularz');
+        
         const eventProperties = {
           $event_type: 'form_submit',
           form_id: this.id,
@@ -112,6 +142,8 @@ function initGTM() {
           timestamp: new Date().toISOString(),
           $current_url: window.location.href
         };
+        
+        console.log('Wysyłam event formularza do PostHog:', eventProperties);
         
         posthog.capture('form_submitted', eventProperties, {
           send_instantly: true
